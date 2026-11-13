@@ -1,7 +1,9 @@
 blueprint:
   name: Low battery level detection & notification for all battery sensors
-  description: Regularly test all sensors with 'battery' device-class for crossing
-    a certain battery level threshold and if so execute an action.
+  description: >
+    Version 1.1.0 — Regularly test all sensors with 'battery' device-class for
+    crossing a certain battery level threshold and if so execute an action.
+    Notification output includes the area name for easy location identification.
     Fork of https://gist.github.com/sbyx/1f6f434f0903b872b84c4302637d0890
   domain: automation
   input:
@@ -57,12 +59,16 @@ variables:
     {% set result = namespace(sensors=[]) %}
     {% for state in states.sensor | selectattr('attributes.device_class', '==', 'battery') %}
       {% if 0 <= state.state | int(-1) < threshold | int and not state.entity_id in exclude.entity_id %}
-        {% set result.sensors = result.sensors + [state.name ~ ' (' ~ state.state ~ ' %)'] %}
+        {% set area = area_name(state.entity_id) %}
+        {% set label = (area ~ ' – ' if area else '') ~ entity_name(state.entity_id) ~ ' (' ~ state.state ~ ' %)' %}
+        {% set result.sensors = result.sensors + [label] %}
       {% endif %}
     {% endfor %}
     {% for state in states.binary_sensor | selectattr('attributes.device_class', '==', 'battery') | selectattr('state', '==', 'on') %}
       {% if not state.entity_id in exclude.entity_id %}
-        {% set result.sensors = result.sensors + [state.name] %}
+        {% set area = area_name(state.entity_id) %}
+        {% set label = (area ~ ' – ' if area else '') ~ entity_name(state.entity_id) %}
+        {% set result.sensors = result.sensors + [label] %}
       {% endif %}
     {% endfor %}
     {{result.sensors|join(', ')}}
